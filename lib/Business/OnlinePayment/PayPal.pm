@@ -1,16 +1,15 @@
 #
-# $Id: PayPal.pm,v 1.3 2006/08/28 16:29:20 plobbes Exp $
+# $Id: PayPal.pm,v 1.5 2007/02/16 04:48:34 plobbes Exp $
 
 package Business::OnlinePayment::PayPal;
 
 use 5.006;
 use strict;
 use warnings;
-use Carp;
 use base qw(Business::OnlinePayment);
 use Business::PayPal::API qw(DirectPayments);
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 $VERSION = eval $VERSION;
 
 =head1 NAME
@@ -217,8 +216,7 @@ sub get_credentials {
     my %credentials;
     my @cred_vars = (
         [qw(PKCS12File PKCS12Password)],
-        [qw(CertFile KeyFile)],
-        [qw(Signature)],
+        [qw(CertFile KeyFile)], [qw(Signature)],
     );
 
     foreach my $aref (@cred_vars) {
@@ -226,6 +224,7 @@ sub get_credentials {
         my @vars = ( qw(Username Password), @$aref );
 
         foreach my $var (@vars) {
+
             # HACK: Business::OnlinePayment makes method lower case
             my $method = lc($var);
             if ( $self->can($method) ) {
@@ -317,7 +316,7 @@ sub get_request_data {
     my $self    = shift;
     my %content = $self->content;
 
-    return () unless(%content);
+    return () unless (%content);
 
     # remove some unsupported content
     # others? description, invoice_number, customer_id
@@ -426,10 +425,8 @@ sub submit {
     my %request     = $self->get_request_data;
 
     my $pp =
-      Business::PayPal::API->new(
-        %credentials,
-        sandbox => $self->test_transaction,
-    );
+      Business::PayPal::API->new( %credentials,
+        sandbox => $self->test_transaction, );
 
     my %resp = $pp->DoDirectPaymentRequest(%request);
 
@@ -449,7 +446,8 @@ sub submit {
 
     if ( $resp{Errors} and @{ $resp{Errors} } ) {
         my $error = join( "; ",
-            map { $_->{ErrorCode} . ": " . $_->{LongMessage} } @{ $resp{Errors} } );
+            map { $_->{ErrorCode} . ": " . $_->{LongMessage} }
+              @{ $resp{Errors} } );
         $self->error_message($error);
     }
 
@@ -505,30 +503,27 @@ PayPal.  If the module is unable to identify the given type it leaves
 the value AS-IS and leaves it to PayPal to do what it can with the
 data given.  Supported card types are:
 
-  Visa | MasterCard | Discover | Amex | Switch | Solo
+  Visa | MasterCard | Discover | Amex
 
 Translations used are:
 
   /^vis/i     => "Visa"
-  /^mas/i     => "Mastercard"
+  /^mas/i     => "MasterCard"
   /^ame/i     => "Amex"
   /^dis/i     => "Discover"
-  /^switch$/i => "Switch"
-  /^solo$/i   => "Solo"
 
 =cut
 
 sub normalize_creditcardtype {
     my ( $self, $cctype ) = @_;
 
-    if    ( $cctype =~ /^vis/i )     { $cctype = "Visa"; }
-    elsif ( $cctype =~ /^mas/i )     { $cctype = "Mastercard"; }
-    elsif ( $cctype =~ /^ame/i )     { $cctype = "Amex"; }
-    elsif ( $cctype =~ /^dis/i )     { $cctype = "Discover"; }
-    elsif ( $cctype =~ /^switch$/i ) { $cctype = "Switch"; }
-    elsif ( $cctype =~ /^solo$/i )   { $cctype = "Solo"; }
+    if    ( $cctype =~ /^vis/i ) { $cctype = "Visa"; }
+    elsif ( $cctype =~ /^mas/i ) { $cctype = "MasterCard"; }
+    elsif ( $cctype =~ /^ame/i ) { $cctype = "Amex"; }
+    elsif ( $cctype =~ /^dis/i ) { $cctype = "Discover"; }
     else {
-        #croak("Credit Card type '$cctype' not known");
+
+        # Credit Card type '$cctype' not known
     }
     return ($cctype);
 }
@@ -545,12 +540,13 @@ The following formats are supported:
   YYYY[.-]MM, YYYY[.-]M, YY[-/]M, YY[.-]MM
   MM[-/]YYYY, M[-/]YYYY, M[-/]YY, MM/YY, MMYY
 
-WARNING: If an unrecognized format is encountered this method will
-croak().  To avoid having this module attempt to parse 'expiration'
-explicitly set ExpMonth and ExpYear in content().
-
 NOTE: this method is based on the parse_exp method found in
 L<Business::OnlinePayment::InternetSecure|Business::OnlinePayment::InternetSecure>.
+
+If an unrecognized format is encountered this method it will return an
+empty list and leave it to PayPal to do what it can with the data
+given.  To avoid having this module attempt to parse 'expiration'
+explicitly set ExpMonth and ExpYear in content().
 
 =cut
 
@@ -577,7 +573,7 @@ sub parse_expiration {
         ( $y, $m ) = ( $2, $1 );
     }
     else {
-        croak("Unable to parse expiration date '$exp'");
+        return ();    # unable to parse expiration date '$exp'
     }
 
     # HACK: add the current century - 1

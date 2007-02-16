@@ -1,12 +1,12 @@
 #!/usr/bin/perl
-# $Id: Business-OnlinePayment-PayPal.t,v 1.1.1.1 2006/08/27 04:33:05 plobbes Exp $
+# $Id: Business-OnlinePayment-PayPal.t,v 1.2 2007/02/16 04:44:43 plobbes Exp $
 # Before `make install' is performed this script should be runnable
 # with `make test'. After `make install' it should work as `perl
 # Business-OnlinePayment-PayPal.t'
 
 use strict;
 use warnings;
-use Test::More tests => 37;
+use Test::More tests => 35;
 
 BEGIN { use_ok("Business::OnlinePayment") or exit; }
 
@@ -109,11 +109,9 @@ my %new_args = (
     my @cc  = (
         [qw(Bogus      Bogus)],
         [qw(visa       Visa)],
-        [qw(Mastercard Mastercard)],
-        [ "American express", "Amex" ],
-        [qw(discover   Discover)],
-        [qw(sWiTcH     Switch)],
-        [qw(solo       Solo)],
+        [qw(Mastercard MasterCard)],
+        [q(American Express), q(Amex) ],
+        [qw(disCOver   Discover)],
     );
     foreach my $aref ( @cc ) {
         my ( $in, $want ) = @$aref;
